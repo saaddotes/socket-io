@@ -13,16 +13,15 @@ import {
 } from "@/components/ui/dialog";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/authContext";
-import axios from "axios";
 
 export function AddMember() {
-  const [memberUid, setMemberUid] = useState("");
-  const { user } = useAuth();
+  const [memberEmail, setmemberEmail] = useState("");
+  const { user, socket } = useAuth();
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!memberUid.trim()) {
+    if (!memberEmail.trim()) {
       toast.error("Please enter a valid email address.");
       return;
     }
@@ -32,31 +31,17 @@ export function AddMember() {
       return;
     }
 
-    try {
-      const res = await axios.post("http://localhost:4000/auth/add-friend", {
-        senderEmail: user.email,
-        receiverEmail: memberUid,
-      });
-
-      const data = await res.data;
-
-      if (data.success) {
-        toast.success("Friend request sent successfully!");
-        console.log("Friend request response: ", data);
-        setMemberUid("");
-      } else {
-        toast.error(data.message || "Failed to send friend request.");
+    socket?.emit(
+      "add-friend",
+      { senderId: user._id, receiverEmail: memberEmail },
+      (response: { success: boolean; message: string }) => {
+        if (response.success) {
+          toast.success(response.message);
+        } else {
+          toast.error(response.message);
+        }
       }
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        toast.error(
-          error.response?.data.message || "Failed to send friend request."
-        );
-      } else {
-        toast.error("Unexpected error occurred. Please try again.");
-        console.error("Unexpected error: ", error);
-      }
-    }
+    );
   };
 
   return (
@@ -70,11 +55,11 @@ export function AddMember() {
         </DialogHeader>
         <form onSubmit={handleAddMember} className="space-y-4">
           <div>
-            <Label htmlFor="memberUid">Member Email</Label>
+            <Label htmlFor="memberEmail">Member Email</Label>
             <Input
-              id="memberUid"
-              value={memberUid}
-              onChange={(e) => setMemberUid(e.target.value)}
+              id="memberEmail"
+              value={memberEmail}
+              onChange={(e) => setmemberEmail(e.target.value)}
               required
             />
           </div>
