@@ -44,8 +44,10 @@ app.post("/signup", checkCredentials, async (req, res) => {
 app.post("/login", checkCredentials, async (req, res) => {
   const { email, password } = req.body;
 
+  console.log("Logging");
+
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password").lean();
     if (!user) {
       return res
         .status(400)
@@ -60,13 +62,14 @@ app.post("/login", checkCredentials, async (req, res) => {
         .json({ success: false, message: "Incorrect Password" });
     }
 
-    const safeUser = user.toObject();
-    delete safeUser.password;
-    const token = jwt.sign(safeUser, JWT_SECRET, { expiresIn: "1h" });
+    // const safeUser = user.toObject();
+    // delete safeUser.password;
+    const token = jwt.sign(user, JWT_SECRET, { expiresIn: "1h" });
 
+    console.log("logged User", user);
     res
       .status(200)
-      .json({ success: true, message: "User Founded", data: safeUser, token });
+      .json({ success: true, message: "User Founded", data: user, token });
   } catch (e) {
     res.status(500).json({
       success: false,
