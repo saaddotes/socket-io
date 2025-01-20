@@ -4,25 +4,6 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import io from "socket.io-client";
 
-// createdAt
-// :
-// "2025-01-16T15:51:27.657Z"
-// email
-// :
-// "s@6a.com"
-// isVerified
-// :
-// false
-// updatedAt
-// :
-// "2025-01-16T15:51:27.657Z"
-// __v
-// :
-// 0
-// _id
-// :
-// "67892aff3370ba0c93eaec28"
-
 export type User = {
   name: string;
   email: string;
@@ -43,6 +24,7 @@ interface AuthContextType {
   logout: () => void;
   signup: (name: string, email: string, password: string) => Promise<void>;
   socket: any;
+  // setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -61,10 +43,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token && storedUser) {
       try {
         const parserUser = JSON.parse(storedUser) as User;
+        console.log("parserUser", parserUser);
         setUser(parserUser);
 
         if (!socket) {
-          const socket = io("http://localhost:4000", {
+          const socket = io("http://192.168.0.104:4000", {
             query: { userId: parserUser._id },
           });
 
@@ -72,6 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             toast("Socket connect successfully : " + socket.id, {
               icon: "👌",
             });
+          });
+
+          socket.on("trigger-requests", ({ receiver }) => {
+            console.log("updatedUser triggered", receiver);
+            setUser(receiver);
           });
 
           socket.on("disconnect", () => {
@@ -89,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [socket]);
 
   const signup = async (name: string, email: string, password: string) => {
-    const res = await axios.post("http://localhost:4000/auth/signup", {
+    const res = await axios.post("http://192.168.0.104:4000/auth/signup", {
       name,
       email,
       password,
@@ -101,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.data);
 
     if (!socket) {
-      const newSocket = io("http://localhost:4000");
+      const newSocket = io("http://192.168.0.104:4000");
       newSocket.on("connect", () => {
         newSocket.emit("newUser", { user });
         console.log("Connected to server with socket ID:", newSocket.id);
@@ -112,16 +100,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await axios.post("http://localhost:4000/auth/login", {
+      const res = await axios.post("http://192.168.0.104:4000/auth/login", {
         email,
         password,
       });
       const data = await res.data;
 
+      console.log("data", data);
+
       sessionStorage.setItem("authToken", data.token);
       sessionStorage.setItem("user", JSON.stringify(data.data));
       setUser(data.data);
-      const newSocket = io("http://localhost:4000");
+      const newSocket = io("http://192.168.0.104:4000");
       socket.on("connect", () => {
         socket.emit("newUser", { user });
         console.log("Connected to server with socket ID:", socket.id);
