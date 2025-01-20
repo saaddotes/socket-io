@@ -13,11 +13,10 @@ import { useAuth } from "@/context/authContext";
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const authContext = useAuth();
-  const user = authContext ? authContext.user : null;
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (user && user.email) {
+    if (user) {
       router.push("/chat");
     } else {
       setLoading(false);
