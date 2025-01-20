@@ -1,25 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-} from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { useState } from "react";
+// import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
-import axios from "axios";
 import { useAuth } from "@/context/authContext";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { user, login } = useAuth();
+  const { login } = useAuth();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,14 +24,14 @@ export function LoginForm() {
     });
   };
 
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    toast.promise(signInWithPopup(auth, provider), {
-      loading: "Signing in with Google...",
-      success: "Successfully signed in with Google!",
-      error: "Failed to sign in with Google. Please try again.",
-    });
-  };
+  // const handleGoogleLogin = async () => {
+  //   const provider = new GoogleAuthProvider();
+  //   toast.promise(signInWithPopup(auth, provider), {
+  //     loading: "Signing in with Google...",
+  //     success: "Successfully signed in with Google!",
+  //     error: "Failed to sign in with Google. Please try again.",
+  //   });
+  // };
 
   return (
     <motion.div
@@ -81,7 +75,7 @@ export function LoginForm() {
           </span>
         </div>
       </div>
-      <Button onClick={handleGoogleLogin} variant="outline" className="w-full">
+      {/* <Button onClick={handleGoogleLogin} variant="outline" className="w-full">
         <svg
           className="mr-2 h-4 w-4"
           aria-hidden="true"
@@ -98,7 +92,7 @@ export function LoginForm() {
           ></path>
         </svg>
         Google
-      </Button>
+      </Button> */}
     </motion.div>
   );
 }
