@@ -1,14 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { doc, setDoc } from "firebase/firestore";
 import { useAuth } from "@/context/authContext";
 
 export function SignupForm() {

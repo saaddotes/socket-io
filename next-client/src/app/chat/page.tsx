@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useAuth, User } from "@/context/authContext";
+import { useAuth } from "@/context/authContext";
 
 export default function ChatPage() {
   // const [user, setUser] = useState<User | null>(null);

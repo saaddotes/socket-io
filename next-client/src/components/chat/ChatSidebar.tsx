@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion } from "framer-motion";
@@ -21,42 +20,7 @@ export function ChatSidebar({
 }: {
   onSelectChat: (id: string) => void;
 }) {
-  const [chats, setChats] = useState<any>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-
-  // useEffect(() => {
-  //   if (user) {
-  //     fetchMembers();
-  //   }
-  // }, []);
-
-  // async function fetchMembers() {
-  //   try {
-  //     const res = await axios.post("http://192.168.0.112:4000/auth/friends", {
-  //       email: user?.email,
-  //     });
-  //     const data = await res.data;
-
-  //     console.log("ChatRoom => ", data);
-  //     console.log("Friends => ", data.friends);
-  //     setChats(data.friends);
-  //     setLoading(false);
-  //   } catch (error) {
-  //     if (axios.isAxiosError(error)) {
-  //       console.log(error.response?.data.message);
-  //       // throw new Error(error.response?.data.message);
-  //     } else {
-  //       console.log(error);
-  //       throw new Error("Unexpected Error");
-  //     }
-  //   }
-  // }
-
-  // const filteredChats = chats.filter((chat) =>
-  //   chat.otherParticipantName?.toLowerCase().includes(searchTerm.toLowerCase())
-  // );
 
   return (
     <div className="w-full md:w-64 border-r border-gray-200 h-full flex flex-col">
@@ -67,9 +31,7 @@ export function ChatSidebar({
         </div>
       </div>
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="text-center text-gray-500">Loading chats...</div>
-        ) : user && user.friends.length > 0 ? (
+        {user && user.friends.length > 0 ? (
           user.friends.map((friend, index) => (
             <motion.div
               key={friend._id}

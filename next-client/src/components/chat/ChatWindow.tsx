@@ -114,7 +114,7 @@ export function ChatWindow({
       }) => {
         if (response.success) {
           toast.success(response.message);
-          let tempArr = [...messages];
+          const tempArr = [...messages];
           tempArr.push(response.newMessage);
           setMessages([...tempArr]);
         } else {

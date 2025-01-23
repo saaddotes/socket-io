@@ -57,7 +57,7 @@ const FriendRequests = () => {
   return (
     <div className="flex flex-col space-y-2 mb-2">
       <p>Friends Requests</p>
-      {user?.friendRequests.map((friend, index) => (
+      {user?.friendRequests.map((friend) => (
         <div
           key={friend._id}
           className="bg-slate-400 rounded-lg my-10 p-2 flex items-center justify-between gap-2"
