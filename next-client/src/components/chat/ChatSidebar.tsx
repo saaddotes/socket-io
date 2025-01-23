@@ -34,7 +34,7 @@ export function ChatSidebar({
 
   // async function fetchMembers() {
   //   try {
-  //     const res = await axios.post("http://192.168.0.104:4000/auth/friends", {
+  //     const res = await axios.post("http://192.168.0.112:4000/auth/friends", {
   //       email: user?.email,
   //     });
   //     const data = await res.data;
@@ -72,7 +72,7 @@ export function ChatSidebar({
         ) : user && user.friends.length > 0 ? (
           user.friends.map((friend, index) => (
             <motion.div
-              key={friend}
+              key={friend._id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -81,9 +81,9 @@ export function ChatSidebar({
               <Button
                 variant="secondary"
                 className="w-full justify-between h-16 rounded-lg"
-                onClick={() => onSelectChat(friend)}
+                onClick={() => onSelectChat(friend._id)}
               >
-                <div className="text-left">{friend}</div>
+                <div className="text-left">{friend.name}</div>
               </Button>
             </motion.div>
           ))

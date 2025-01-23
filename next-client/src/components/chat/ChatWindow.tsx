@@ -1,24 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-  doc,
-  Timestamp,
-  setDoc,
-  getDoc,
-} from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { AddMember } from "./AddMember";
 import {
@@ -29,101 +13,70 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { UserSettings } from "../settings/UserSettings";
+import { useAuth } from "@/context/authContext";
+import toast from "react-hot-toast";
 
 type MessageType = {
-  id: string;
-  sender: string;
-  senderAvatar?: string;
-  senderName?: string;
-  text: string;
-  timestamp: Timestamp;
+  _id: string;
+  chatRoomId: string;
+  senderId: string;
+  message: string;
+  status: ["sent", "delivered", "read"];
+  time: Date;
 };
 
 export function ChatWindow({
-  chatId,
+  receiverId,
   setSelectedChat,
 }: {
-  chatId: string | null;
+  receiverId: string | null;
   setSelectedChat: (id: string | null) => void;
 }) {
+  const { user, socket } = useAuth();
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [userName, setUsername] = useState("");
-  // const [participants, setParticipants] = useState<any[]>([]);
+
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!chatId) return;
+    if (!user || !socket) {
+      toast.error("User or Socket Id nor found");
+      return;
+    }
 
-    // Fetch the chat participants (if applicable) and set username
-    const fetchUserName = async () => {
-      try {
-        const chatRef = doc(db, "chats", chatId);
-        const chatSnapshot = await getDoc(chatRef);
-
-        if (chatSnapshot.exists()) {
-          const participants = chatSnapshot.data()?.participants || [];
-          // Assuming you want to get the name of the other participant, not the current user
-          const otherParticipant = participants.find(
-            (participant: string) => participant !== auth?.currentUser?.uid
-          );
-
-          if (otherParticipant) {
-            const userRef = doc(db, "users", otherParticipant);
-            const userSnapshot = await getDoc(userRef);
-
-            if (userSnapshot.exists()) {
-              const fetchedUserName =
-                userSnapshot.data()?.name || "Unknown User";
-              setUsername(fetchedUserName);
-            }
-          }
+    socket?.emit(
+      "start-chat",
+      { senderId: user._id, receiverId },
+      (response: {
+        success: boolean;
+        message: string;
+        chatRoom: string;
+        prevMessages: MessageType[];
+      }) => {
+        if (response.success) {
+          toast.success(response.message);
+          setMessages(response.prevMessages);
+          console.log("Prev => ", response.prevMessages);
+        } else {
+          toast.error(response.message);
+          console.log(response);
         }
-      } catch (error) {
-        console.error("Error fetching username:", error);
       }
-    };
-
-    fetchUserName();
-  }, [chatId]);
-
-  useEffect(() => {
-    if (!chatId) return;
-
-    // const chatRef = doc(db, "chats", chatId);
-    // const unsubscribeChat = onSnapshot(chatRef, (doc) => {
-    //   if (doc.exists()) {
-    //     setParticipants(doc.data().participants || []);
-    //   }
-    // });
-
-    const q = query(
-      collection(db, `chats/${chatId}/messages`),
-      orderBy("timestamp", "asc"),
-      limit(50)
     );
 
-    const unsubscribeMessages = onSnapshot(q, (snapshot) => {
-      const messageData: MessageType[] = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          sender: data.sender,
-          senderAvatar: data.senderAvatar || "", // Fallback
-          senderName: data.senderName || "", // Fallback
-          text: data.text,
-          timestamp: data.timestamp || Timestamp.now(), // Fallback
-        };
-      });
+    socket?.on("new-message", (data: { message: MessageType }) => {
+      setMessages((prevMessages) => [...prevMessages, data.message]);
+    });
 
-      setMessages(messageData);
+    socket?.on("update-status", ({ prevMessages }) => {
+      setMessages([...prevMessages]);
+      console.log("Updated Data => ", prevMessages);
     });
 
     return () => {
-      // unsubscribeChat();
-      unsubscribeMessages();
+      socket?.off("new-message");
     };
-  }, [chatId]);
+  }, [user, receiverId, socket]);
 
   useEffect(() => {
     console.log(
@@ -144,32 +97,36 @@ export function ChatWindow({
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !auth?.currentUser?.uid) return;
+    if (!newMessage.trim() || !user?._id) return;
 
-    await addDoc(collection(db, `chats/${chatId}/messages`), {
-      text: newMessage,
-      sender: auth?.currentUser?.uid,
-      timestamp: serverTimestamp(),
-    });
-
-    if (!chatId) {
+    if (!receiverId) {
       console.error("Chat ID is null");
       return;
     }
 
-    await setDoc(
-      doc(db, "chats", chatId),
-      {
-        lastMessage: newMessage,
-        lastMessageTime: serverTimestamp(),
-      },
-      { merge: true }
+    socket?.emit(
+      "send-message",
+      { senderId: user._id, receiverId, messageText: newMessage },
+      (response: {
+        success: boolean;
+        message: string;
+        newMessage: MessageType;
+      }) => {
+        if (response.success) {
+          toast.success(response.message);
+          let tempArr = [...messages];
+          tempArr.push(response.newMessage);
+          setMessages([...tempArr]);
+        } else {
+          toast.error(response.message);
+        }
+      }
     );
 
     setNewMessage("");
   };
 
-  if (!chatId) {
+  if (!receiverId) {
     return (
       <div className="flex h-screen w-screen justify-center items-center">
         <span className="loading loading-ring loading-lg"></span>
@@ -200,9 +157,7 @@ export function ChatWindow({
               />
             </svg>
           </Button>
-          <h2 className="text-xl font-semibold">
-            {userName ? userName : "Chat"}
-          </h2>
+          <h2 className="text-xl font-semibold">Chat</h2>
         </div>
         <div className="flex items-center gap-3">
           <AddMember />
@@ -219,56 +174,41 @@ export function ChatWindow({
           </Dialog>
         </div>
       </div>
-      <div
-        ref={scrollAreaRef}
-        className="h-full p-4 overflow-auto"
-        style={{ maxHeight: "100%" }}
-      >
+      <div ref={scrollAreaRef} className="h-full p-4 overflow-auto max-h-full">
         <AnimatePresence>
           {messages?.map((message) => (
             <motion.div
-              key={message.id}
+              key={message._id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
               className={`flex ${
-                message.sender === auth?.currentUser?.uid
-                  ? "justify-end"
-                  : "justify-start"
+                message.senderId === user?._id ? "justify-end" : "justify-start"
               } mb-4`}
             >
               <div
                 className={`flex ${
-                  message.sender === auth?.currentUser?.uid
+                  message.senderId === user?._id
                     ? "flex-row-reverse"
                     : "flex-row"
                 } items-end`}
               >
-                <div className="text-xs text-gray-500 mx-2">
-                  {message.timestamp
-                    ? new Date(
-                        message.timestamp.seconds * 1000
-                      ).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "Just now"}
-                </div>{" "}
-                {/* <Avatar className="w-8 h-8">
-                  <AvatarImage src={message.senderAvatar} />
-                  <AvatarFallback>
-                    {message.senderName ? message.senderName[0] : "?"}
-                  </AvatarFallback>
-                </Avatar> */}
                 <div
-                  className={`mx-2 p-3 rounded-lg ${
-                    message.sender === auth.currentUser?.uid
+                  className={`mx-2 p-3 rounded-lg relative ${
+                    message.senderId === user?._id
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary"
                   }`}
                 >
-                  {message.text}
+                  {message.message}
+                  {message.senderId === user?._id && (
+                    <span
+                      className={`absolute rounded-full bg-slate-500 text-white bottom-[-5px] px-1 right-[-5px] text-[8px]`}
+                    >
+                      {message.status}
+                    </span>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -16,36 +16,18 @@ import {
 import { useAuth, User } from "@/context/authContext";
 
 export default function ChatPage() {
-  const [user, setUser] = useState<User | null>(null);
+  // const [user, setUser] = useState<User | null>(null);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const router = useRouter();
 
-  const [receiverId, setReceiverId] = useState("");
-  const { user: authUser, socket } = useAuth();
+  // const [receiverId, setReceiverId] = useState("");
+  const { user, socket } = useAuth();
 
   useEffect(() => {
-    if (authUser) {
-      setUser(authUser);
-      if (socket) {
-        socket.on(
-          "message-receive",
-          (data: { message: string; senderId: string }) => {
-            console.log("Data received => ", data);
-          }
-        );
-
-        socket.on("newUser", ({ socketId }: { socketId: string }) => {
-          console.log("newUser", socketId);
-        });
-        return () => {
-          socket.off("message-receive");
-          socket.off("newUser");
-        };
-      }
-    } else {
+    if (!user) {
       router.push("/");
     }
-  }, [router, authUser, socket]);
+  }, [router, user, socket]);
 
   if (!user) {
     return (
@@ -84,7 +66,10 @@ export default function ChatPage() {
         }`}
       >
         {selectedChat ? (
-          <ChatWindow chatId={selectedChat} setSelectedChat={setSelectedChat} />
+          <ChatWindow
+            receiverId={selectedChat}
+            setSelectedChat={setSelectedChat}
+          />
         ) : (
           <>
             <header className="bg-white shadow-sm p-4 flex justify-between items-center">

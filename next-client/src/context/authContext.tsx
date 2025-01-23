@@ -1,8 +1,17 @@
 "use client";
+
 import axios from "axios";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import toast from "react-hot-toast";
-import io from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 
 export type User = {
   name: string;
@@ -13,9 +22,16 @@ export type User = {
   updatedAt: string;
   __v: number;
   _id: string;
-  friends: string[];
-  friendRequests: string[];
+  friends: Friend[];
+  friendRequests: Friend[];
   socketId?: string;
+};
+
+export type Friend = {
+  _id: string;
+  name: string;
+  email: string;
+  isVerified: boolean;
 };
 
 interface AuthContextType {
@@ -23,122 +39,125 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   signup: (name: string, email: string, password: string) => Promise<void>;
-  socket: any;
-  // setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  socket: Socket | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [socket, setSocket] = useState<any>(null);
+  const socketRef = useRef<Socket | null>(null);
+
+  // Initialize the socket connection
+  const initializeSocket = useCallback((userId: string) => {
+    if (!socketRef.current) {
+      const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL, {
+        query: { userId },
+      });
+
+      socket.on("connect", () => {
+        toast.success(`Socket connected: ${socket.id}`);
+      });
+
+      socket.on("trigger-requests", ({ data }) => {
+        setUser(data);
+      });
+
+      socket.on("disconnect", () => {
+        toast.error("Socket disconnected.");
+      });
+
+      socketRef.current = socket;
+    }
+  }, []);
 
   useEffect(() => {
     const token = sessionStorage.getItem("authToken");
     const storedUser = sessionStorage.getItem("user");
-    // const {email} = JSON.parse(sessionStorage.getItem("user"))
 
-    console.log("Token Auth => ", token);
-    console.log("User Auth => ", storedUser);
     if (token && storedUser) {
       try {
-        const parserUser = JSON.parse(storedUser) as User;
-        console.log("parserUser", parserUser);
-        setUser(parserUser);
-
-        if (!socket) {
-          const socket = io("http://192.168.0.104:4000", {
-            query: { userId: parserUser._id },
-          });
-
-          socket.on("connect", () => {
-            toast("Socket connect successfully : " + socket.id, {
-              icon: "👌",
-            });
-          });
-
-          socket.on("trigger-requests", ({ receiver }) => {
-            console.log("updatedUser triggered", receiver);
-            setUser(receiver);
-          });
-
-          socket.on("disconnect", () => {
-            toast("Socket Disconnected", {
-              icon: "🙋‍♂️",
-            });
-          });
-
-          setSocket(socket);
-        }
+        const parsedUser = JSON.parse(storedUser) as User;
+        setUser(parsedUser);
+        initializeSocket(parsedUser._id);
       } catch (error) {
-        console.log("Error => ", error);
+        console.error("Failed to parse user data from sessionStorage:", error);
       }
     }
-  }, [socket]);
 
-  const signup = async (name: string, email: string, password: string) => {
-    const res = await axios.post("http://192.168.0.104:4000/auth/signup", {
-      name,
-      email,
-      password,
-    });
-    const data = await res.data;
+    return () => {
+      socketRef.current?.disconnect();
+      socketRef.current = null;
+    };
+  }, [initializeSocket]);
 
-    sessionStorage.setItem("authToken", data.token);
-    sessionStorage.setItem("user", JSON.stringify(data.data));
-    setUser(data.data);
+  console.log("user", user);
 
-    if (!socket) {
-      const newSocket = io("http://192.168.0.104:4000");
-      newSocket.on("connect", () => {
-        newSocket.emit("newUser", { user });
-        console.log("Connected to server with socket ID:", newSocket.id);
-      });
-      setSocket(newSocket);
-    }
-  };
+  const signup = useCallback(
+    async (name: string, email: string, password: string) => {
+      try {
+        const res = await axios.post(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signup`,
+          { name, email, password }
+        );
+        const data = res.data;
 
-  const login = async (email: string, password: string) => {
-    try {
-      const res = await axios.post("http://192.168.0.104:4000/auth/login", {
-        email,
-        password,
-      });
-      const data = await res.data;
-
-      console.log("data", data);
-
-      sessionStorage.setItem("authToken", data.token);
-      sessionStorage.setItem("user", JSON.stringify(data.data));
-      setUser(data.data);
-      const newSocket = io("http://192.168.0.104:4000");
-      socket.on("connect", () => {
-        socket.emit("newUser", { user });
-        console.log("Connected to server with socket ID:", socket.id);
-      });
-      setSocket(newSocket);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const errorMessage =
-          error?.response?.data?.message || "Something went wrong.";
+        sessionStorage.setItem("authToken", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.data));
+        setUser(data.data);
+        initializeSocket(data.data._id);
+      } catch (error) {
+        const errorMessage = axios.isAxiosError(error)
+          ? error?.response?.data?.message || "Signup failed."
+          : "Unexpected error occurred.";
+        toast.error(errorMessage);
         throw new Error(errorMessage);
-      } else {
-        throw new Error("Unexpected Error occurred.");
       }
-    }
-  };
+    },
+    [initializeSocket]
+  );
 
-  const logout = async () => {
+  const login = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const res = await axios.post(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
+          { email, password }
+        );
+        const data = res.data;
+
+        sessionStorage.setItem("authToken", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.data));
+        setUser(data.data);
+        initializeSocket(data.data._id);
+      } catch (error) {
+        console.log(error);
+        const errorMessage = axios.isAxiosError(error)
+          ? error?.response?.data?.message || "Login failed."
+          : "Unexpected error occurred.";
+        toast.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+    },
+    [initializeSocket]
+  );
+
+  const logout = useCallback(() => {
     sessionStorage.removeItem("authToken");
     sessionStorage.removeItem("user");
     setUser(null);
-    toast.success("You have been successfully signed out.");
-    socket.disconnect();
-  };
+
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    toast.success("You have been successfully logged out.");
+  }, []);
 
   const contextValue = useMemo(
-    () => ({ user, login, logout, signup, socket }),
-    [user]
+    () => ({ user, login, logout, signup, socket: socketRef.current }),
+    [user, login, logout, signup]
   );
 
   return (

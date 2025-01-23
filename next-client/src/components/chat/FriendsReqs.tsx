@@ -1,5 +1,3 @@
-import { useState } from "react";
-// Assuming you have a custom Button component
 import { useAuth } from "@/context/authContext";
 import toast from "react-hot-toast";
 
@@ -23,7 +21,7 @@ const FriendRequests = () => {
     // try {
     //   // Make an API call to accept the friend request
     //   const response = await axios.post(
-    //     "http://192.168.0.104:4000/auth/accept-friend",
+    //     "http://192.168.0.112:4000/auth/accept-friend",
     //     {
     //       senderEmail: user?.email,
     //       receiverEmail: requestId,
@@ -59,15 +57,15 @@ const FriendRequests = () => {
   return (
     <div className="flex flex-col space-y-2 mb-2">
       <p>Friends Requests</p>
-      {user?.friendRequests.map((request, index) => (
+      {user?.friendRequests.map((friend, index) => (
         <div
-          key={request}
+          key={friend._id}
           className="bg-slate-400 rounded-lg my-10 p-2 flex items-center justify-between gap-2"
         >
-          <span className="text-xs flex-1 overflow-hidden">{request}</span>
+          <span className="text-xs flex-1 overflow-hidden">{friend.name}</span>
           <button
             className="btn btn-primary btn-sm"
-            onClick={() => handleAcceptFriend(request)}
+            onClick={() => handleAcceptFriend(friend._id)}
           >
             Accept
           </button>
