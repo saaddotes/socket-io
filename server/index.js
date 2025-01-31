@@ -9,7 +9,7 @@ import cors from "cors";
 import User from "./models/User.js";
 import Message from "./models/Message.js";
 
-const { MONGODB_URI, ORIGIN, PORT } = process.env;
+const { MONGODB_URI, PORT } = process.env;
 const app = express();
 
 app.use(cors());
@@ -36,6 +36,19 @@ io.on("connection", async (socket) => {
   const userId = socket.handshake.query.userId;
   console.log("User connected succesfully", socket.id, " => ", userId);
   users[userId] = socket.id;
+
+  try {
+    const user = await User.findById(userId).populate(
+      "friendRequests",
+      "name email isVerified"
+    );
+
+    if (user.friendRequests.length > 0) {
+      socket.emit("trigger-requests", { data: user });
+    }
+  } catch (error) {
+    console.error("Error fetching friend requests:", error);
+  }
 
   socket.on("start-chat", async ({ senderId, receiverId }, callback) => {
     try {
@@ -167,7 +180,7 @@ io.on("connection", async (socket) => {
       await receiver.save();
 
       const populatedReceiver = await User.findById(receiver._id).populate(
-        "friends",
+        "friendRequests",
         "name email isVerified"
       );
 

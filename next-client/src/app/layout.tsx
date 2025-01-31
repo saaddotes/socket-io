@@ -8,8 +8,8 @@ import { AuthProvider } from "@/context/authContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Chat App",
-  description: "A modern chat application built with Next.js and Firebase",
+  title: "Quick Chat",
+  description: "A modern chat application built with Next.js and Socket IO",
 };
 
 export default function RootLayout({
