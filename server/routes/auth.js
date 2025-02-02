@@ -284,11 +284,9 @@ app.post("/verifyToken", async (req, res) => {
 //         .json({ success: false, message: "User not found." });
 //     }
 
-//     // Add sender to receiver's friend list and vice versa
 //     receiver.friends.push(sender._id);
 //     sender.friends.push(receiver._id);
 
-//     // Remove sender from receiver's friend requests list
 //     receiver.friendRequests = receiver.friendRequests.filter(
 //       (id) => id.toString() !== sender._id.toString()
 //     );
