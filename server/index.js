@@ -8,9 +8,11 @@ import "dotenv/config";
 import cors from "cors";
 import User from "./models/User.js";
 import Message from "./models/Message.js";
+import morgan from "morgan";
 
 const { MONGODB_URI, PORT } = process.env;
 const app = express();
+app.use(morgan("combined"));
 
 app.use(cors());
 
@@ -34,7 +36,7 @@ const users = {};
 
 io.on("connection", async (socket) => {
   const userId = socket.handshake.query.userId;
-  console.log("User connected succesfully", socket.id, " => ", userId);
+  // console.log("User connected succesfully", socket.id, " => ", userId);
   users[userId] = socket.id;
 
   try {
@@ -42,6 +44,8 @@ io.on("connection", async (socket) => {
       "friendRequests",
       "name email isVerified"
     );
+
+    // console.log(user);
 
     if (user.friendRequests.length > 0) {
       socket.emit("trigger-requests", { data: user });
@@ -122,7 +126,7 @@ io.on("connection", async (socket) => {
 
         if (users[receiverId]) {
           socket.to(users[receiverId]).emit("new-message", { message });
-          console.log("User online");
+          // console.log("User online");
         }
 
         callback({
@@ -203,7 +207,7 @@ io.on("connection", async (socket) => {
       const sender = await User.findById(senderId);
       const receiver = await User.findById(requestId);
 
-      console.log("Add friend => ", senderId, requestId);
+      // console.log("Add friend => ", senderId, requestId);
 
       if (!sender || !receiver) {
         return callback({
@@ -219,27 +223,25 @@ io.on("connection", async (socket) => {
       await sender.save();
       await receiver.save();
 
-      const populatedSender = await User.findById(senderId).populate(
-        "friends",
-        "name email isVerified"
-      );
-      const populatedReceiver = await User.findById(receiver._id).populate(
-        "friends",
-        "name email isVerified"
-      );
+      const populatedSender = await User.findById(senderId)
+        .populate("friends", "name email isVerified")
+        .populate("friendRequests", "name email isVerified");
+      const populatedReceiver = await User.findById(receiver._id)
+        .populate("friends", "name email isVerified")
+        .populate("friendRequests", "name email isVerified");
 
       const receiverSocketId = users[receiver._id];
       const senderSocketId = users[sender._id];
 
       if (receiverSocketId) {
-        console.log("receiverSocketId => ", receiverSocketId, receiver);
+        // console.log("receiverSocketId => ", receiverSocketId, receiver);
         io.to(receiverSocketId).emit("trigger-requests", {
           data: populatedReceiver,
         });
       }
 
       if (senderSocketId) {
-        console.log("senderSocketId => ", senderSocketId, sender);
+        // console.log("senderSocketId => ", senderSocketId, sender);
 
         io.to(senderSocketId).emit("trigger-requests", {
           data: populatedSender,
@@ -257,10 +259,10 @@ io.on("connection", async (socket) => {
     if (userId) {
       delete users[userId];
     }
-    console.log("User disconnected", users);
+    // console.log("User disconnected", users);
   });
 
-  console.log("Users : ", users);
+  // console.log("Users : ", users);
 });
 
 app.use("/auth", auth);

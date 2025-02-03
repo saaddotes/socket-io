@@ -43,13 +43,17 @@ app.post("/signup", checkCredentials, async (req, res) => {
 app.post("/login", checkCredentials, async (req, res) => {
   const { email, password } = req.body;
 
-  console.log("Logging");
+  // console.log("Logging");
 
   try {
     const user = await User.findOne({ email })
       .select("+password")
       .populate("friends", "name email isVerified")
+      .populate("friendRequests", "name email isVerified")
       .lean();
+
+    // console.log("user from login : ", user);
+
     if (!user) {
       return res
         .status(400)
@@ -68,7 +72,7 @@ app.post("/login", checkCredentials, async (req, res) => {
     // delete safeUser.password;
     const token = jwt.sign(user, JWT_SECRET, { expiresIn: "1h" });
 
-    console.log("logged User", user);
+    // console.log("logged User", user);
     res
       .status(200)
       .json({ success: true, message: "User Founded", data: user, token });

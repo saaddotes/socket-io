@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       socket.on("trigger-requests", ({ data }) => {
         setUser(data);
+        sessionStorage.setItem("user", JSON.stringify(data.data));
       });
 
       socket.on("disconnect", () => {
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [initializeSocket]);
 
-  console.log("user", user);
+  // console.log("user", user);
 
   const signup = useCallback(
     async (name: string, email: string, password: string) => {

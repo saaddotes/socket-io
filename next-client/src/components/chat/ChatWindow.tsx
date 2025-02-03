@@ -56,10 +56,10 @@ export function ChatWindow({
         if (response.success) {
           toast.success(response.message);
           setMessages(response.prevMessages);
-          console.log("Prev => ", response.prevMessages);
+          // console.log("Prev => ", response.prevMessages);
         } else {
           toast.error(response.message);
-          console.log(response);
+          // console.log(response);
         }
       }
     );
@@ -70,7 +70,7 @@ export function ChatWindow({
 
     socket?.on("update-status", ({ prevMessages }) => {
       setMessages([...prevMessages]);
-      console.log("Updated Data => ", prevMessages);
+      // console.log("Updated Data => ", prevMessages);
     });
 
     return () => {
@@ -79,12 +79,12 @@ export function ChatWindow({
   }, [user, receiverId, socket]);
 
   useEffect(() => {
-    console.log(
-      "Scroll",
-      scrollAreaRef.current,
-      messages,
-      scrollAreaRef?.current?.scrollHeight
-    );
+    // console.log(
+    //   "Scroll",
+    //   scrollAreaRef.current,
+    //   messages,
+    //   scrollAreaRef?.current?.scrollHeight
+    // );
     if (scrollAreaRef.current) {
       requestAnimationFrame(() => {
         scrollAreaRef.current?.scrollTo({
@@ -100,7 +100,7 @@ export function ChatWindow({
     if (!newMessage.trim() || !user?._id) return;
 
     if (!receiverId) {
-      console.error("Chat ID is null");
+      // console.error("Chat ID is null");
       return;
     }
 

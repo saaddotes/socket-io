@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "Start" : "node index.js",
+    "Start": "node index.js",
     "dev": "nodemon index.js"
   },
   "keywords": [],
@@ -18,6 +18,7 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
+    "morgan": "^1.10.0",
     "nodemailer": "^6.9.16",
     "socket.io": "^4.8.1"
   },

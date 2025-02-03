@@ -18,7 +18,7 @@ const FriendRequests = () => {
     );
   };
 
-  console.log(user?.friendRequests, user);
+  // console.log(user?.friendRequests, user);
 
   return (
     <div className="flex flex-col space-y-2 mb-2">
